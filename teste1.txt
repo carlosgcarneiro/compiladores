@@ -1,0 +1,5 @@
+consertar numero da linha comentario
+ 
+linha de erro 
+
+imprimir tabela de simbolo
