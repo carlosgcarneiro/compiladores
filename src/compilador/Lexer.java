@@ -144,6 +144,7 @@ public class Lexer {
         // Fim do tratamento de comentários 
 
         switch (ch) {
+
             case '=':
                 if (readch('=')) {
                     return Word.eq; // retorna ==
@@ -176,6 +177,9 @@ public class Lexer {
             case ';':
                 ch = ' ';
                 return Word.pvg;   // retorna ;
+            case ':':
+                ch = ' ';
+                return Word.dp;   // retorna :
             case ',':
                 ch = ' ';
                 return Word.vg;	   // retorna ,
@@ -197,10 +201,12 @@ public class Lexer {
             if (!Character.isDigit(ch)) {
                 // ch = ' ';
                 if (value > 2147483647) // valor ultrapassou o tamanho de um int Java
-                erros+="Valor numerico lido ultrapassou o suportado na linha "+Lexer.line+"\n";
-                
+                {
+                    erros += "Valor numerico lido ultrapassou o suportado na linha " + Lexer.line + "\n";
+                }
+
                 return new Int(value); // retorna o inteiro
-                
+
             }
         }
 
@@ -268,42 +274,34 @@ public class Lexer {
      */
     public Hashtable simulateAnalysis() throws IOException {
 
-       Token t = scan(); // busca novo token
+        Token t = scan(); // busca novo token
 
-       System.out.println("\n \t Tokens encontrados no arquivo \n");
+        System.out.println("\n \t Tokens encontrados no arquivo \n");
 
-       // Lê tokens enquanto não encontra fim de arquivo
-       while (t.tag != Tag.EOF) {
-           if (t instanceof Word) {
-               System.out.println(((Word) t).getLexeme() + " ");
-           } else if (t instanceof Int) {
-               System.out.println(((Int) t).toString() + " ");
-           } else {
-               System.out.println((char) t.tag + " ");
-           }
-           t = scan(); // busca outro token
-       }
-             
+        // Lê tokens enquanto não encontra fim de arquivo
+        while (t.tag != Tag.EOF) {
+            if (t instanceof Word) {
+                System.out.println(((Word) t).getLexeme() + " ");
+            } else if (t instanceof Int) {
+                System.out.println(((Int) t).toString() + " ");
+            } else {
+                System.out.println((char) t.tag + " ");
+            }
+            t = scan(); // busca outro token
+        }
+
         System.out.println("\n \t \t Tabela de Símbolos\n");
         Enumeration tokensTable = words.elements(); // para iterar na tabela// para iterar na tabela
         while (tokensTable.hasMoreElements()) {
-        Word tt = (Word) tokensTable.nextElement();
-           System.out.println("Lexema: \t" +tt.getLexeme()+" \t\t\t\t Tag:   "+tt.tag); // imprime-se o token
-        } 
-        
-       if (erros.length() > 0) {
-           System.out.println("\n------ ERROS ----- ");
-           System.out.println(erros);
-       } 
+            Word tt = (Word) tokensTable.nextElement();
+            System.out.println("Lexema: \t" + tt.getLexeme() + " \t\t\t\t Tag:   " + tt.tag); // imprime-se o token
+        }
+
+        if (erros.length() > 0) {
+            System.out.println("\n------ ERROS ----- ");
+            System.out.println(erros);
+        }
         return words;
-   }
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    }
+
 }

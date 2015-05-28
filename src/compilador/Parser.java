@@ -13,16 +13,22 @@ import java.util.ArrayList;
  * @author caca
  */
 public class Parser {
-
+    public static final java.lang.String ANSI_RESET = "\u001B[0m";
+    public static final java.lang.String ANSI_BLACK = "\u001B[30m";
+    public static final java.lang.String ANSI_RED = "\u001B[31m";
+    public static final java.lang.String ANSI_GREEN = "\u001B[32m";
+    
+    
     private Lexer lexer; // analisador léxico
     private Token look; // simbolo lookahead
-    private Env top = null; // tabela de simbolos atual
     private int used = 0; // memoria usada para declaracoes
     public static int currentL = 0; //linha atual
-    
-    public Parser(java.lang.String filename) throws IOException {
+
+    public Parser(java.lang.String filename) throws IOException, Exception {
         this.lexer = new Lexer(filename);
         this.advance();
+        this.program();
+
     }
 
     /**
@@ -34,25 +40,27 @@ public class Parser {
      */
     private void advance() throws IOException {
         this.look = this.lexer.scan();
+        System.out.println(ANSI_GREEN+"" + this.look.toString() + " L" + this.lexer.line+ANSI_RESET); // REMOVER...
     }
 
     /**
      * error: metodo para gerar os erros sintaticos
      */
     private void error() {
-        //System.out.println("ERRO AQUI: " + this.look.tag + " L" + this.lexer.line); // REMOVER...
-        throw new ParserException(this.lexer.line);
+        System.out.println(ANSI_RED+"ERRO AQUI: " + this.look.tag + " L" + this.lexer.line+ANSI_RESET); // REMOVER...
+
     }
 
     /**
      * match: permite verificar se o lookahead corresponde ao esperado
      */
     private void match(int t) throws IOException {
+
         if (this.look.tag == t) {
-            //System.out.println("" + this.look.tag + " L" + this.lexer.line); // REMOVER...
+
             this.advance();
         } else {
-            error();            
+            error();
         }
     }
 
@@ -65,7 +73,7 @@ public class Parser {
         declList();
         match(Tag.START);
         stmtList();
-        
+
         match(Tag.END);
         match(Tag.EOF); // se o token apos exit nao for eof, da problema (programa termina com "fim de arquivo")
     }
@@ -76,7 +84,7 @@ public class Parser {
     private void declList() throws Exception {
         decl();
         match(Tag.PVG);
-        while (this.look.tag == Tag.BASIC) {
+        while (this.look.tag == Tag.ID) {
             decl();
             match(Tag.PVG);
         }
@@ -85,12 +93,11 @@ public class Parser {
     /**
      * decl
      */
-    private void decl() throws Exception {        
+    private void decl() throws Exception {
         identList();
-        int currentLine = this.lexer.line;
         match(Tag.DP);
         type();
-        
+
     }
 
     /**
@@ -99,10 +106,10 @@ public class Parser {
     private void identList() throws Exception {
         match(Tag.ID); // eh necessario que se tenha ao menos um id (identifier)
 
-		// pode haver mais identificadores a seguir
+        // pode haver mais identificadores a seguir
         // e eles devem ser precedidos de uma virgula
         while (this.look.tag == Tag.VG) {
-            match(Tag.VG);            
+            match(Tag.VG);
             match(Tag.ID); // identifier
         }
     }
@@ -111,11 +118,9 @@ public class Parser {
      * type
      */
     private void type() throws Exception {
-        Type p = (Type) look;
-        if (this.look.tag == Tag.INT) {
-            match(Tag.INT);
-        } else if (this.look.tag == Tag.STRING) {
-            match(Tag.STRING);
+        if (this.look.tag == Tag.BASIC) {
+
+            match(Tag.BASIC);
         }
     }
 
@@ -123,8 +128,8 @@ public class Parser {
      * stmt-list
      */
     private void stmtList() throws Exception {
-        
-        do{
+
+        do {
             stmt();
             match(Tag.PVG);
         } while ((this.look.tag == Tag.IF) || (this.look.tag == Tag.ID)
@@ -136,19 +141,26 @@ public class Parser {
      * stmt
      */
     private void stmt() throws Exception {
-  
+
         this.currentL = this.lexer.line;
         switch (this.look.tag) {
             case Tag.ID:
                 assignStmt();
+                break;
             case Tag.IF:
                 ifStmt();
+                break;
             case Tag.DO:
                 doStmt();
+                break;
             case Tag.READ:
                 readStmt();
+                break;
             case Tag.WRITE:
                 writeStmt();
+                break;
+            default:
+                error();
         }
     }
 
@@ -157,7 +169,7 @@ public class Parser {
      */
     private void assignStmt() throws Exception {
         match(Tag.ID);
-        match(Tag.EQ);
+        match(Tag.AT);
         simpleExpr();
     }
 
@@ -169,7 +181,7 @@ public class Parser {
         condition();
         match(Tag.THEN);
         stmtList();
-        ifStmt2();        
+        ifStmt2();
     }
 
     /**
@@ -183,6 +195,8 @@ public class Parser {
                 match(Tag.ELSE);
                 stmtList();
                 match(Tag.END);
+            default:
+                error();
         }
     }
 
@@ -246,9 +260,9 @@ public class Parser {
     }
 
     /**
-     * expression = simple-expr expression2
-     * expression2 = lamda | relop simple-expr
-     * 
+     * expression = simple-expr expression2 expression2 = lamda | relop
+     * simple-expr
+     *
      */
     private void expression2() throws Exception {
         switch (this.look.tag) {
@@ -261,7 +275,8 @@ public class Parser {
                 relop();
                 simpleExpr();
                 break;
-            default: break; //lambda
+            default:
+                break; //lambda
         }
     }
 
@@ -271,13 +286,12 @@ public class Parser {
     public void simpleExpr() throws Exception {
         term();
         simpleExpr2();
-        
+
     }
 
     /**
-     * simple-expr2
-     * simple-expr ::= term simple-expr2	
-     * simple-expr2::= lambda | addop term simple-expr2
+     * simple-expr2 simple-expr ::= term simple-expr2 simple-expr2::= lambda |
+     * addop term simple-expr2
      */
     public void simpleExpr2() throws Exception {
         switch (this.look.tag) {
@@ -288,9 +302,10 @@ public class Parser {
                 term();
                 simpleExpr2();
                 break;
-            default: break; //lambda
+            default:
+                break; //lambda
         }
-        
+
     }
 
     /**
@@ -302,9 +317,7 @@ public class Parser {
     }
 
     /**
-     * term2
-     * term ::= factor-a term2	
-     * term2::= lambda | mulop factor-a term2
+     * term2 term ::= factor-a term2 term2::= lambda | mulop factor-a term2
      */
     public void term2() throws Exception {
         switch (this.look.tag) {
@@ -315,7 +328,8 @@ public class Parser {
                 factorA();
                 term2();
                 break;
-            default: break; //lambda
+            default:
+                break; //lambda
         }
     }
 
@@ -349,11 +363,13 @@ public class Parser {
             case Tag.STRING:
                 constant();
                 break;
-            case '(':
+            case Tag.LPAR:
                 match(Tag.LPAR);
                 expression();
                 match(Tag.RPAR);
                 break;
+            default:
+                error();
         }
     }
 
@@ -374,6 +390,8 @@ public class Parser {
                 match(Tag.LE);
             case Tag.NE:
                 match(Tag.NE);
+            default:
+                error();
         }
     }
 
@@ -384,10 +402,15 @@ public class Parser {
         switch (this.look.tag) {
             case Tag.PLUS:
                 match(Tag.PLUS);
+                break;
             case Tag.MINUS:
                 match(Tag.MINUS);
+                break;
             case Tag.OR:
                 match(Tag.OR);
+                break;
+            default:
+                error();
         }
     }
 
@@ -398,10 +421,15 @@ public class Parser {
         switch (this.look.tag) {
             case Tag.TIMES:
                 match(Tag.TIMES);
+                break;
             case Tag.DIV:
                 match(Tag.DIV);
+                break;
             case Tag.AND:
                 match(Tag.AND);
+                break;
+            default:
+                error();
         }
     }
 
@@ -412,8 +440,12 @@ public class Parser {
         switch (this.look.tag) {
             case Tag.INT:
                 match(Tag.INT);
+                break;
             case Tag.STRING:
                 match(Tag.STRING);
+                break;
+            default:
+                error();
         }
     }
 }

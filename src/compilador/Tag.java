@@ -54,6 +54,7 @@ public class Tag {
 	    DIV = 300, // /
             OR = 301, // or e OR
             AND = 302, // and e AND
+            NOT = 303,
     
             BASIC = 310,
             ID = 311,

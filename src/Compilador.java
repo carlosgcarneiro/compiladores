@@ -1,6 +1,7 @@
 
 import compilador.Env;
 import compilador.Lexer;
+import compilador.Parser;
 import compilador.Token;
 import java.util.Scanner;
 import java.util.*;
@@ -20,11 +21,15 @@ public class Compilador {
     public static void main(String[] args) {
         try {
             startCompiler();
-            Lexer l = new Lexer(fileName);
-            Token t;
+            int parser = 1;
+            if (parser == 1) {
+                Parser p = new Parser(fileName);
+            } else {
+                Lexer l = new Lexer(fileName);
+                //Token t;
 
-            l.simulateAnalysis();
-
+                l.simulateAnalysis();
+            }
             System.out.println("\n\n Compiler: Compilação do arquivo " + fileName + " feita com sucesso.");
         } catch (Exception e) {
             e.printStackTrace();
