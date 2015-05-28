@@ -40,14 +40,14 @@ public class Parser {
      */
     private void advance() throws IOException {
         this.look = this.lexer.scan();
-        System.out.println(ANSI_GREEN+"" + this.look.toString() + " L" + this.lexer.line+ANSI_RESET); // REMOVER...
+ 
     }
 
     /**
      * error: metodo para gerar os erros sintaticos
      */
     private void error() {
-        System.out.println(ANSI_RED+"ERRO AQUI: " + this.look.tag + " L" + this.lexer.line+ANSI_RESET); // REMOVER...
+        System.out.println(ANSI_RED+"ERRO NA LINHA: " + this.lexer.line + "  //////  TOKEN ENCONTRADO: "+ this.look +ANSI_RESET); // REMOVER...
 
     }
 
