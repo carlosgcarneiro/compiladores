@@ -160,7 +160,7 @@ public class Lexer {
             case '<':
                 if (readch('=')) {
                     return Word.le; // retorna <=
-                } else if (ch == '>') {
+                } else if (readch('>')) {
                     return Word.ne; // retorna <>
                 } else {
                     return Word.lt; // retorna <

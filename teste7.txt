@@ -1,0 +1,9 @@
+declare
+ // Programa da Thais
+ thais, carlos, jose: int;
+ joao: string;
+ start
+ read(thais);
+ if ( thais and jose) then
+ carlos=1;
+ end

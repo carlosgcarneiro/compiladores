@@ -1,0 +1,9 @@
+declare
+ // TemQueFuncionarPoisEhUmComentarioENaoToken
+ a,b,c: int;
+ start
+ read(thais);
+ if ( thais < b) then
+ read(thais);
+ end
+end

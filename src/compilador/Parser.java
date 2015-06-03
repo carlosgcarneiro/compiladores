@@ -13,12 +13,12 @@ import java.util.ArrayList;
  * @author caca
  */
 public class Parser {
+
     public static final java.lang.String ANSI_RESET = "\u001B[0m";
     public static final java.lang.String ANSI_BLACK = "\u001B[30m";
     public static final java.lang.String ANSI_RED = "\u001B[31m";
     public static final java.lang.String ANSI_GREEN = "\u001B[32m";
-    
-    
+
     private Lexer lexer; // analisador léxico
     private Token look; // simbolo lookahead
     private int used = 0; // memoria usada para declaracoes
@@ -40,14 +40,14 @@ public class Parser {
      */
     private void advance() throws IOException {
         this.look = this.lexer.scan();
- 
+
     }
 
     /**
      * error: metodo para gerar os erros sintaticos
      */
     private void error() {
-        System.out.println(ANSI_RED+"ERRO NA LINHA: " + this.lexer.line + "  //////  TOKEN ENCONTRADO: "+ this.look +ANSI_RESET); // REMOVER...
+        System.out.println(ANSI_RED + "ERRO NA LINHA: " + this.lexer.line + "  //////  TOKEN ENCONTRADO: " + this.look + ANSI_RESET); // REMOVER...
 
     }
 
@@ -61,6 +61,7 @@ public class Parser {
             this.advance();
         } else {
             error();
+            this.advance();
         }
     }
 
@@ -73,7 +74,6 @@ public class Parser {
         declList();
         match(Tag.START);
         stmtList();
-
         match(Tag.END);
         match(Tag.EOF); // se o token apos exit nao for eof, da problema (programa termina com "fim de arquivo")
     }
