@@ -24,6 +24,8 @@ public class Parser {
     private int used = 0; // memoria usada para declaracoes
     public static int currentL = 0; //linha atual
 
+    private SymbolsTable top = null;
+
     public Parser(java.lang.String filename) throws IOException, Exception {
         this.lexer = new Lexer(filename);
         this.advance();
@@ -50,6 +52,12 @@ public class Parser {
         System.out.println(ANSI_RED + "ERRO NA LINHA: " + this.lexer.line + "  //////  TOKEN ENCONTRADO: " + this.look + ANSI_RESET); // REMOVER...
 
     }
+    
+    private void must_be_unique_error(Word w) {
+        
+        System.out.println(ANSI_RED + "ERRO NA LINHA: " + this.lexer.line + "  //////  TOKEN ENCONTRADO: " + w.getLexeme()+" de ser unico" + ANSI_RESET); // REMOVER...
+
+    }
 
     /**
      * match: permite verificar se o lookahead corresponde ao esperado
@@ -71,9 +79,15 @@ public class Parser {
     public void program() throws Exception {
         match(Tag.DECLARE);
         // inicializada
+        SymbolsTable savedTable = this.top; //criando contexto para a TS
+        this.top = new SymbolsTable(this.top);
+
         declList();
         match(Tag.START);
         stmtList();
+
+        this.top = savedTable; //retornando o contexto anterior à TS
+
         match(Tag.END);
         match(Tag.EOF); // se o token apos exit nao for eof, da problema (programa termina com "fim de arquivo")
     }
@@ -94,76 +108,106 @@ public class Parser {
      * decl
      */
     private void decl() throws Exception {
-        identList();
+        ArrayList<Word> ids = identList();
         match(Tag.DP);
-        type();
+        Type t= type();
+        
+        
+        // adiciona-se os ids à tabela de simbolos, junto a seu respectivo tipo
+        for (Word w : ids) {
+                // verificando se o identificador é único...	
+                if(this.top.get(w) != null) {
+                        must_be_unique_error(w);
+                } else {
+                        Id id = new Id(w, t, this.used);
+                        this.top.put(w, id);
+                }
+        }
 
     }
 
     /**
      * ident-list
      */
-    private void identList() throws Exception {
+    private ArrayList<Word> identList() throws Exception {
+        ArrayList<Word> ids = new ArrayList<Word>();
+        if (this.look.tag == Tag.ID) { //se a tag a ser lida for um ID, adicionar ao array
+            ids.add((Word) this.look);
+        }
         match(Tag.ID); // eh necessario que se tenha ao menos um id (identifier)
 
         // pode haver mais identificadores a seguir
         // e eles devem ser precedidos de uma virgula
         while (this.look.tag == Tag.VG) {
             match(Tag.VG);
+            if (this.look.tag == Tag.ID) {
+                ids.add((Word) this.look);
+            }
             match(Tag.ID); // identifier
         }
+        return ids;
     }
 
     /**
      * type
      */
-    private void type() throws Exception {
-        if (this.look.tag == Tag.BASIC) {
-
-            match(Tag.BASIC);
-        }
+    private Type type() throws Exception {
+        Type t = (Type) look;
+        
+        
+    //if (this.look.tag == Tag.BASIC) {
+        match(Tag.BASIC);
+        return t;
+    //}
     }
 
     /**
      * stmt-list
      */
-    private void stmtList() throws Exception {
+    private ArrayList<Stmt> stmtList() throws Exception {
 
+        ArrayList<Stmt> stmts = new ArrayList<Stmt>();
+        
         do {
-            stmt();
+            Stmt s = stmt();
+            stmts.add(s);
             match(Tag.PVG);
         } while ((this.look.tag == Tag.IF) || (this.look.tag == Tag.ID)
                 || (this.look.tag == Tag.DO) || (this.look.tag == Tag.READ)
                 || (this.look.tag == Tag.WRITE));
+        return stmts;
     }
 
     /**
      * stmt
      */
-    private void stmt() throws Exception {
+    private Stmt stmt() throws Exception {
 
         this.currentL = this.lexer.line;
         switch (this.look.tag) {
             case Tag.ID:
-                assignStmt();
+                return assignStmt();
                 break;
             case Tag.IF:
-                ifStmt();
+                return ifStmt();
                 break;
             case Tag.DO:
-                doStmt();
+                return doStmt();
                 break;
             case Tag.READ:
-                readStmt();
+                return readStmt();
                 break;
             case Tag.WRITE:
-                writeStmt();
+                return writeStmt();
                 break;
             default:
                 error();
+                return null;
         }
     }
-
+    parei aqui.
+    estou seguindo linha 213: https://github.com/robertacnm/CompTP/blob/master/Compiler/src/modules/Parser.java
+    prox passo: alterar as funções reconhecidas por Stmt.
     /**
      * assign-stmt
      */
