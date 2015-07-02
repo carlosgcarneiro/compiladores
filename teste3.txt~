@@ -8,7 +8,7 @@ declare
 
  write("Altura: ");
  read (altura);
- soma = soma # altura;
+ soma = soma + altura;
  cont = cont - 1;
 
  while(cont);

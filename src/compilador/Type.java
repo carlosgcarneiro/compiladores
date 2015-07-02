@@ -14,6 +14,7 @@ public class Type extends Word{
 	}
 	
 	public static final Type
+                BOOL_TYPE = new Type("bool", Tag.BASIC),
 		INT_TYPE = new Type("int", Tag.BASIC),
 		STRING_TYPE = new Type("string", Tag.BASIC);
 	
@@ -33,6 +34,13 @@ public class Type extends Word{
 			return Type.INT_TYPE;
 		} else return Type.STRING_TYPE;
 	}
-
+        
+        public static boolean same(Type p1, Type p2, Type pttn) {
+		if((p1 == p2) && (pttn == p1)) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 }
    

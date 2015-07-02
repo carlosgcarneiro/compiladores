@@ -49,13 +49,19 @@ public class Parser {
      * error: metodo para gerar os erros sintaticos
      */
     private void error() {
-        System.out.println(ANSI_RED + "ERRO NA LINHA: " + this.lexer.line + "  //////  TOKEN ENCONTRADO: " + this.look + ANSI_RESET); // REMOVER...
+        System.out.println(ANSI_RED + "ERRO NA LINHA: " + this.lexer.line + "  //////  TOKEN ENCONTRADO: " + this.look + ANSI_RESET);
 
     }
-    
+
     private void must_be_unique_error(Word w) {
-        
-        System.out.println(ANSI_RED + "ERRO NA LINHA: " + this.lexer.line + "  //////  TOKEN ENCONTRADO: " + w.getLexeme()+" de ser unico" + ANSI_RESET); // REMOVER...
+
+        System.out.println(ANSI_RED + "ERRO NA LINHA: " + this.lexer.line + "  //////  TOKEN ENCONTRADO: " + w.getLexeme() + " deve ser unico" + ANSI_RESET);
+
+    }
+
+    private void didnt_declare_error(Token t) {
+
+        System.out.println(ANSI_RED + "ERRO NA LINHA: " + this.lexer.line + "  //////  variável não foi declarada" + ANSI_RESET);
 
     }
 
@@ -79,15 +85,12 @@ public class Parser {
     public void program() throws Exception {
         match(Tag.DECLARE);
         // inicializada
-        SymbolsTable savedTable = this.top; //criando contexto para a TS
-        this.top = new SymbolsTable(this.top);
-
+        SymbolsTable savedTable = this.top; //tinhamos feito com contxtualizacao de variavel, para nao alterar muito mantivemos, entao savedTable=this.top
+        this.top = new SymbolsTable();
         declList();
         match(Tag.START);
         stmtList();
-
         this.top = savedTable; //retornando o contexto anterior à TS
-
         match(Tag.END);
         match(Tag.EOF); // se o token apos exit nao for eof, da problema (programa termina com "fim de arquivo")
     }
@@ -110,18 +113,17 @@ public class Parser {
     private void decl() throws Exception {
         ArrayList<Word> ids = identList();
         match(Tag.DP);
-        Type t= type();
-        
-        
+
+        Type t = type();
         // adiciona-se os ids à tabela de simbolos, junto a seu respectivo tipo
         for (Word w : ids) {
-                // verificando se o identificador é único...	
-                if(this.top.get(w) != null) {
-                        must_be_unique_error(w);
-                } else {
-                        Id id = new Id(w, t, this.used);
-                        this.top.put(w, id);
-                }
+            // verificando se o identificador é único...	
+            if (this.top.get(w) != null) {
+                must_be_unique_error(w);
+            } else {
+                Id id = new Id(w, t, this.used);
+                this.top.put(w, id);
+            }
         }
 
     }
@@ -153,12 +155,11 @@ public class Parser {
      */
     private Type type() throws Exception {
         Type t = (Type) look;
-        
-        
-    //if (this.look.tag == Tag.BASIC) {
+
+        //if (this.look.tag == Tag.BASIC) {
         match(Tag.BASIC);
         return t;
-    //}
+        //}
     }
 
     /**
@@ -167,7 +168,7 @@ public class Parser {
     private ArrayList<Stmt> stmtList() throws Exception {
 
         ArrayList<Stmt> stmts = new ArrayList<Stmt>();
-        
+
         do {
             Stmt s = stmt();
             stmts.add(s);
@@ -187,120 +188,137 @@ public class Parser {
         switch (this.look.tag) {
             case Tag.ID:
                 return assignStmt();
-                break;
             case Tag.IF:
                 return ifStmt();
-                break;
             case Tag.DO:
                 return doStmt();
-                break;
             case Tag.READ:
                 return readStmt();
-                break;
             case Tag.WRITE:
                 return writeStmt();
-                break;
             default:
                 error();
                 return null;
         }
     }
-    parei aqui.
-    estou seguindo linha 213: https://github.com/robertacnm/CompTP/blob/master/Compiler/src/modules/Parser.java
-    prox passo: alterar as funções reconhecidas por Stmt.
+
     /**
      * assign-stmt
      */
-    private void assignStmt() throws Exception {
+    private AssignStmt assignStmt() throws Exception {
+        Id identifier = this.top.get(this.look);
         match(Tag.ID);
         match(Tag.AT);
-        simpleExpr();
+        Expression e = simpleExpr();
+        return new AssignStmt(identifier, e);
     }
 
     /**
      * if-stmt
      */
-    private void ifStmt() throws Exception {
+    private IfStmt ifStmt() throws Exception {
         match(Tag.IF);
-        condition();
+        Condition c = condition();
         match(Tag.THEN);
-        stmtList();
-        ifStmt2();
+        ArrayList<Stmt> stmts = stmtList();
+        Stmt s = ifStmt2();
+
+        if (s == null) {
+            return new IfStmt(c, stmts);
+        } else {
+            return new IfElseStmt(c, stmts, (Else) s);
+        }
+
     }
 
     /**
      * if-stmt2
      */
-    private void ifStmt2() throws Exception {
+    private Stmt ifStmt2() throws Exception {
         switch (this.look.tag) {
             case Tag.END:
                 match(Tag.END);
+                return null;
             case Tag.ELSE:
                 match(Tag.ELSE);
-                stmtList();
+                ArrayList<Stmt> stmts = stmtList();
                 match(Tag.END);
+                return new Else(stmts);
             default:
                 error();
+                return null;
         }
     }
 
     /**
      * condition
      */
-    private void condition() throws Exception {
-        expression();
+    private Condition condition() throws Exception {
+        Expression e = expression();
+        return new Condition(e);
     }
 
     /**
      * while-stmt
      */
-    private void doStmt() throws Exception {
+    private DoStmt doStmt() throws Exception {
         match(Tag.DO);
-        stmtList();
-        stmtSuffix();
+        ArrayList<Stmt> stmts = stmtList();
+        StmtSuffix ss = stmtSuffix();
+        return new DoStmt(stmts, ss);
     }
 
     /**
      * stmt-suffix
      */
-    private void stmtSuffix() throws Exception {
+    private StmtSuffix stmtSuffix() throws Exception {
         match(Tag.WHILE);
-        condition();
+        Condition c = condition();
+        match(Tag.END);
+        return new StmtSuffix(c);
     }
 
     /**
      * read-stmt
      */
-    private void readStmt() throws Exception {
+    private ReadStmt readStmt() throws Exception {
         match(Tag.READ);
         match(Tag.LPAR);
+        Id id = this.top.get(this.look);
         match(Tag.ID);
         match(Tag.RPAR);
+        return new ReadStmt(id);
     }
 
     /**
      * write-stmt
      */
-    private void writeStmt() throws Exception {
+    private WriteStmt writeStmt() throws Exception {
         match(Tag.WRITE);
         match(Tag.LPAR);
-        writable();
+        Expression w = writable();
         match(Tag.RPAR);
+        return new WriteStmt(w);
     }
 
     /**
      * writable
      */
-    private void writable() throws Exception {
-        simpleExpr();
+    private Expression writable() throws Exception {
+        return simpleExpr();
     }
 
     /**
      * expression
      */
-    private void expression() throws Exception {
-        simpleExpr();
-        expression2();
+    private Expression expression() throws Exception {
+        Expression e1 = simpleExpr();
+        Expression e2 = expression2();
+        if (e2 == null) {
+            return e1;
+        } else {
+            return new Expr(e1, e2);
+        }
     }
 
     /**
@@ -308,7 +326,7 @@ public class Parser {
      * simple-expr
      *
      */
-    private void expression2() throws Exception {
+    private Expression expression2() throws Exception {
         switch (this.look.tag) {
             case Tag.EQ: //first de relop
             case Tag.GT:
@@ -316,38 +334,42 @@ public class Parser {
             case Tag.LT:
             case Tag.LE:
             case Tag.NE:
-                relop();
-                simpleExpr();
-                break;
+                Token op = relop();
+                Expression s = simpleExpr();
+                return new Expr(op, s, null);
             default:
-                break; //lambda
+                return null; //lambda                
         }
     }
 
     /**
      * simple-expr
      */
-    public void simpleExpr() throws Exception {
-        term();
-        simpleExpr2();
-
+    public Expression simpleExpr() throws Exception {
+        Expression e1 = term();
+        SimpleExpr e2 = simpleExpr2();
+        if (e2 == null) {
+            return e1;
+        } else {
+            return new SimpleExpr(e1, e2);
+        }
     }
 
     /**
      * simple-expr2 simple-expr ::= term simple-expr2 simple-expr2::= lambda |
      * addop term simple-expr2
      */
-    public void simpleExpr2() throws Exception {
+    public SimpleExpr simpleExpr2() throws Exception {
         switch (this.look.tag) {
             case Tag.PLUS: //first de relop
             case Tag.MINUS:
             case Tag.OR:
-                addop();
-                term();
-                simpleExpr2();
-                break;
+                Token op = addop();
+                Expression t = term();
+                SimpleExpr s = simpleExpr2();
+                return new SimpleExpr(op, t, s);
             default:
-                break; //lambda
+                return null; //lambda
         }
 
     }
@@ -355,141 +377,181 @@ public class Parser {
     /**
      * term
      */
-    public void term() throws Exception {
-        factorA();
-        term2();
+    public Expression term() throws Exception {
+        Expression e1 = factorA();
+        
+        Term e2 = term2();
+        if (e2 == null) {
+            return e1;
+        } else {
+            return new Term(e1, e2);
+        }
     }
 
     /**
      * term2 term ::= factor-a term2 term2::= lambda | mulop factor-a term2
      */
-    public void term2() throws Exception {
+    public Term term2() throws Exception {
         switch (this.look.tag) {
             case Tag.TIMES:
             case Tag.DIV:
             case Tag.AND:
-                mulop();
-                factorA();
-                term2();
-                break;
+                Token op = mulop();
+                Expression e = factorA();
+                Term t = term2();
+                return t;
             default:
-                break; //lambda
+                return null; //lambda
         }
     }
 
     /**
      * factor-a
      */
-    public void factorA() throws Exception {
+    
+    
+    public Expression factorA() throws Exception {
         switch (this.look.tag) {
             case Tag.NOT:
                 match(Tag.NOT);
-                factor();
-                break;
+                Expression e1 = factor();
+                return new NotFactor(e1, this.currentL);
             case '-':
                 match(Tag.MINUS);
-                factor();
+                Expression e2 = factor();
+                return new NegFactor(e2, this.currentL);
+            case Tag.ID:
+            case Tag.LPAR:
+            case Tag.INT:
+            case Tag.STRING:
+                Expression e3 = factor();
+                return e3;
             default:
-                factor();
-                break; //lambda
+                error();
+                return null;
         }
     }
 
     /**
      * factor
      */
-    public void factor() throws Exception {
+    public Expression factor() throws Exception {
         switch (this.look.tag) {
             case Tag.ID:
+
+                Id id = this.top.get(this.look);
                 match(Tag.ID);
-                break;
+                if (id == null) {
+                    didnt_declare_error(this.look); // caso id nao exista, erro semantico
+                }
+                return id;
             case Tag.INT:
             case Tag.STRING:
-                constant();
-                break;
+                Constant c = constant();
+                return c;
             case Tag.LPAR:
                 match(Tag.LPAR);
-                expression();
+                Expression e = expression();
                 match(Tag.RPAR);
-                break;
+                return e;
+
             default:
                 error();
+                return null;
         }
     }
 
     /**
      * relop
      */
-    private void relop() throws Exception {
+    private Token relop() throws Exception {
+        Word op = (Word) this.look;
         switch (this.look.tag) {
             case Tag.EQ:
                 match(Tag.EQ);
+                return op;
             case Tag.GT:
                 match(Tag.GT);
+                return op;
             case Tag.GE:
                 match(Tag.GE);
+                return op;
             case Tag.LT:
                 match(Tag.LT);
+                return op;
             case Tag.LE:
                 match(Tag.LE);
+                return op;
             case Tag.NE:
                 match(Tag.NE);
+                return op;
             default:
                 error();
+                return null;
         }
     }
 
     /**
      * addop
      */
-    private void addop() throws Exception {
+    private Token addop() throws Exception {
+        Word op = (Word) this.look;
         switch (this.look.tag) {
             case Tag.PLUS:
                 match(Tag.PLUS);
-                break;
+                return op;
             case Tag.MINUS:
                 match(Tag.MINUS);
-                break;
+                return op;
             case Tag.OR:
                 match(Tag.OR);
-                break;
+                return op;
             default:
                 error();
+                return null;
         }
     }
 
     /**
      * mulop
      */
-    private void mulop() throws Exception {
+    private Token mulop() throws Exception {
+        Word op = (Word) this.look;
         switch (this.look.tag) {
             case Tag.TIMES:
                 match(Tag.TIMES);
-                break;
+                return op;
             case Tag.DIV:
                 match(Tag.DIV);
-                break;
+                return op;
             case Tag.AND:
                 match(Tag.AND);
-                break;
+                return op;
             default:
                 error();
+                return null;
         }
     }
 
     /**
      * constant
      */
-    private void constant() throws Exception {
+    private Constant constant() throws Exception {
         switch (this.look.tag) {
             case Tag.INT:
+                int a = Integer.parseInt(this.look.toString());
+                IntegerConst i = new IntegerConst(a);
+                Constant intc = new Constant(i);
                 match(Tag.INT);
-                break;
+                return intc;
             case Tag.STRING:
+                Word w = (Word) this.look;
+                Constant literal = new Constant(w);
                 match(Tag.STRING);
-                break;
+                return literal;
             default:
                 error();
+                return null;
         }
     }
 }

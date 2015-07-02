@@ -1,6 +1,7 @@
 declare
  a: int;
  b: int;
+ nome: int;
  nome: string;
 start
  read (a);

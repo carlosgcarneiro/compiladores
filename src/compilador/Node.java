@@ -23,7 +23,7 @@ static int labels = 0;
 		System.out.println("L" + i + ":");
 	}
 	
-	public void emit(String s) {
+	public void emit(java.lang.String s) {
 		System.out.println("\t" + s);
 	}
 

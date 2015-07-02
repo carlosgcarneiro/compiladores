@@ -8,10 +8,10 @@ declare
 
  write("Altura: ");
  read (altura);
- soma = soma # altura;
+ soma = soma + altura;
  cont = cont - 1;
 
- while(cont);
+ while(cont)
  write("Media: ");
  write (soma / qtd);
  end
