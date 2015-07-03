@@ -18,9 +18,9 @@ public class SimpleExpr extends Expression {
 	
 	public SimpleExpr(Token addop, Expression e, SimpleExpr t){
 		super(addop, e.type);
+                
 		this.expr1 = e;
 		this.expr2 = t;
-		
 		if(t != null) {
 			check();
 		}

@@ -1,14 +1,14 @@
 declare
  // Um programa para calcular a maior idade
  a, b, c, maior: int;
- umavariavelcomonomemuitogrande: string;
+ umavarigrande: string;
  start
  read(a);
  read(b);
  read(c);
 
  maior = 12345678901234567890123456789;
- if ( a and a ) then
+ if ( a and b ) then
  maior = a;
  else
  if (b>c) then
@@ -17,6 +17,6 @@ declare
  maior = c;
  end
  end
- write(“Maior idade: ”);
+ write("Maior idade: ");
  write(maior);
  end

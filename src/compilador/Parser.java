@@ -154,8 +154,12 @@ public class Parser {
      * type
      */
     private Type type() throws Exception {
-        Type t = (Type) look;
-
+        Type t = null;
+        try {
+            t = (Type) look;
+        } catch (java.lang.ClassCastException cc) {
+            t = new Type(look + "", look.tag);
+        }
         //if (this.look.tag == Tag.BASIC) {
         match(Tag.BASIC);
         return t;
@@ -337,6 +341,10 @@ public class Parser {
                 Token op = relop();
                 Expression s = simpleExpr();
                 return new Expr(op, s, null);
+            case Tag.THEN:
+            case Tag.END:
+            case Tag.RPAR:
+                return null;
             default:
                 return null; //lambda                
         }
@@ -361,14 +369,30 @@ public class Parser {
      */
     public SimpleExpr simpleExpr2() throws Exception {
         switch (this.look.tag) {
-            case Tag.PLUS: //first de relop
+            case Tag.PVG:
+            case Tag.THEN:
+            case Tag.END:
+            case Tag.RPAR:
+            case Tag.EQ:
+            case Tag.GT:
+            case Tag.GE:
+            case Tag.LT:
+            case Tag.LE:
+            case Tag.NE:
+                return null;
             case Tag.MINUS:
+            case Tag.PLUS:
             case Tag.OR:
                 Token op = addop();
                 Expression t = term();
+                if (this.look.tag == 311 && top.get(this.look) == null) {
+                    match(this.look.tag);
+                    return null;
+                }
                 SimpleExpr s = simpleExpr2();
                 return new SimpleExpr(op, t, s);
             default:
+                error();
                 return null; //lambda
         }
 
@@ -379,8 +403,8 @@ public class Parser {
      */
     public Expression term() throws Exception {
         Expression e1 = factorA();
-        
-        Term e2 = term2();
+
+        TermTemp e2 = term2();
         if (e2 == null) {
             return e1;
         } else {
@@ -391,15 +415,21 @@ public class Parser {
     /**
      * term2 term ::= factor-a term2 term2::= lambda | mulop factor-a term2
      */
-    public Term term2() throws Exception {
+    public TermTemp term2() throws Exception {
         switch (this.look.tag) {
             case Tag.TIMES:
             case Tag.DIV:
             case Tag.AND:
                 Token op = mulop();
-                Expression e = factorA();
-                Term t = term2();
-                return t;
+                if (this.look.tag == 311 && top.get(this.look) == null) {
+                    match(this.look.tag);
+                    return null;
+                }
+                    Expression e = factorA();
+                
+                TermTemp t = term2();
+                return new TermTemp(op, e, t);
+
             default:
                 return null; //lambda
         }
@@ -408,15 +438,13 @@ public class Parser {
     /**
      * factor-a
      */
-    
-    
     public Expression factorA() throws Exception {
         switch (this.look.tag) {
             case Tag.NOT:
                 match(Tag.NOT);
                 Expression e1 = factor();
                 return new NotFactor(e1, this.currentL);
-            case '-':
+            case Tag.MINUS:
                 match(Tag.MINUS);
                 Expression e2 = factor();
                 return new NegFactor(e2, this.currentL);
@@ -539,7 +567,11 @@ public class Parser {
     private Constant constant() throws Exception {
         switch (this.look.tag) {
             case Tag.INT:
-                int a = Integer.parseInt(this.look.toString());
+                int a = 0;
+                try{
+                    a = Integer.parseInt(this.look.toString());
+                }catch(NumberFormatException nfe){
+                }
                 IntegerConst i = new IntegerConst(a);
                 Constant intc = new Constant(i);
                 match(Tag.INT);
